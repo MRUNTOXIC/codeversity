@@ -6,22 +6,20 @@ import Button from "@/components/Button";
 export default function Choose() {
   const router = useRouter();
 
-  function selectMode(mode) {
-    sessionStorage.setItem("mode", mode);
-    router.push("/chat");
-  }
-
   return (
-    <main className="h-screen flex flex-col justify-center items-center gap-4 px-6">
-      <h2 className="text-xl font-semibold">How do you want to use this space?</h2>
+    <main className="h-screen flex flex-col justify-center items-center gap-6 px-6">
+      <h2 className="text-2xl font-semibold text-center mb-4">How are you feeling today?</h2>
+      <p className="text-gray-600 text-center mb-6">Choose the support that feels right for you</p>
 
-      <Button onClick={() => selectMode("vent")} variant="secondary">
-        Rant Room (Just listen)
-      </Button>
+      <div className="space-y-4 w-full max-w-sm">
+        <Button onClick={() => router.push("/vent")} variant="secondary" className="w-full">
+          💭 Vent Room - I need to let it all out
+        </Button>
 
-      <Button onClick={() => selectMode("reflect")}>
-        Reflect & Calm
-      </Button>
+        <Button onClick={() => router.push("/reflect")} className="w-full">
+          🤔 Reflect & Calm - Help me process and find peace
+        </Button>
+      </div>
     </main>
   );
 }

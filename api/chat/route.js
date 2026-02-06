@@ -1,15 +1,25 @@
-export async function sendMessage(message, mode) {
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ message, mode })
-  });
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-  if (!res.ok) {
-    throw new Error("Failed to send message");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+export async function POST(request) {
+  try {
+    const { message, mode } = await request.json();
+    
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const result = await model.generateContent(message);
+    const response = await result.response;
+    
+    return Response.json({ 
+      message: response.text(),
+      mode 
+    });
+  } catch (error) {
+    return Response.json(
+      { error: "Failed to generate response" },
+      { status: 500 }
+    );
   }
-
-  return res.json();
 }
+
+/**/
