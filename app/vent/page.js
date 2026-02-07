@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatBubble from "@/components/ChatBubble";
 import ChatInput from "@/components/ChatInput";
+import ThemeToggle from "@/components/ThemeToggle";
 import { sendMessage } from "@/lib/apiClient";
+import { VentIcon, MindSpaceLogo } from "@/components/Icons";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function VentRoom() {
+  const router = useRouter();
+  const { theme } = useTheme();
   const [messages, setMessages] = useState([
     {
       sender: "ai",
@@ -23,7 +29,6 @@ export default function VentRoom() {
 
     try {
       const res = await sendMessage(text, "vent");
-      console.log('API Response:', res);
 
       const aiMessage = {
         sender: "ai",
@@ -43,25 +48,62 @@ export default function VentRoom() {
   }
 
   return (
-    <main className="flex flex-col h-screen bg-gray-50">
-      <header className="p-4 border-b bg-white">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">💭</span>
-          <h1 className="text-lg font-semibold">Vent Room</h1>
+    <main className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>
+      {/* Enhanced Header */}
+      <header className="border-b px-6 py-4 backdrop-blur-md" style={{
+        background: theme === 'dark' 
+          ? 'rgba(15, 23, 42, 0.8)'
+          : 'rgba(255, 255, 255, 0.8)',
+        borderColor: 'var(--border)'
+      }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => router.back()} 
+              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              ←
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }}>
+                <VentIcon className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Vent Room</h1>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>A safe space to express your feelings</p>
+              </div>
+            </div>
+          </div>
+          <ThemeToggle />
         </div>
-        <p className="text-sm text-gray-600">A safe space to express your feelings</p>
       </header>
 
-      <section className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Messages Area */}
+      <section className="flex-1 overflow-y-auto p-6 space-y-4 scroll-area" style={{
+        background: 'var(--bg-primary)'
+      }}>
         {messages.map((msg, idx) => (
           <ChatBubble key={idx} sender={msg.sender} text={msg.text} />
         ))}
 
         {loading && (
-          <ChatBubble sender="ai" text="Listening..." />
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{
+              background: 'var(--bg-secondary)'
+            }}>
+              <div className="typing-dots">
+                <div className="typing-dot animate-pulse"></div>
+                <div className="typing-dot animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="typing-dot animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          </div>
         )}
       </section>
 
+      {/* Input Area */}
       <ChatInput onSend={handleSend} disabled={loading} />
     </main>
   );

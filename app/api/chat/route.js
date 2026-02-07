@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { detectCrisis, getCrisisResponse } from "@/backend/services/crisisDetectionService";
 import { mockAIResponse } from "@/backend/services/mockAiService";
+import { detectSensitiveContent, validateMessage, getSensitiveContentWarning } from "@/backend/services/contentValidator";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -54,6 +55,17 @@ export async function POST(request) {
 
     console.log('Received message:', message, 'Mode:', mode);
 
+    // 0️⃣ Validate message format
+    const validation = validateMessage(message);
+    if (!validation.isValid) {
+      return Response.json({
+        reply: "Your message is invalid. Please try again.",
+        message: "Your message is invalid. Please try again.",
+        status: "validation_error",
+        error: validation.error
+      });
+    }
+
     // 1️⃣ Crisis detection (highest priority)
     const crisisDetection = detectCrisis(message);
 
@@ -64,6 +76,21 @@ export async function POST(request) {
         status: "crisis_detected",
         isCrisisContent: true,
         severity: crisisDetection.severity,
+      });
+    }
+
+    // 1.5️⃣ Sensitive content detection and warning
+    const sensitiveDetection = detectSensitiveContent(message);
+    if (sensitiveDetection.isSensitive) {
+      const warning = getSensitiveContentWarning(sensitiveDetection.category);
+      console.warn(`Sensitive content detected (${sensitiveDetection.category}):`, sensitiveDetection.keywords);
+      
+      return Response.json({
+        reply: warning,
+        message: warning,
+        status: "sensitive_content_warning",
+        category: sensitiveDetection.category,
+        keywords: sensitiveDetection.keywords
       });
     }
 
