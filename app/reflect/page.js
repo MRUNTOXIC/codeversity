@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import ChatBubble from "@/components/ChatBubble";
 import ChatInput from "@/components/ChatInput";
 import ThemeToggle from "@/components/ThemeToggle";
+import VoiceSelector from "@/components/VoiceSelector";
+import { analyzeImageForSupport } from "@/backend/services/imageAnalyzer";
 import { sendMessage } from "@/lib/apiClient";
-import { ReflectIcon, CalmIcon } from "@/components/Icons";
+import { ReflectIcon } from "@/components/Icons";
 import { useTheme } from "@/components/ThemeProvider";
 
 export default function ReflectRoom() {
@@ -19,7 +21,6 @@ export default function ReflectRoom() {
     }
   ]);
   const [loading, setLoading] = useState(false);
-  const [currentMode, setCurrentMode] = useState("reflect");
 
   async function handleSend(text) {
     if (!text.trim()) return;
@@ -29,7 +30,7 @@ export default function ReflectRoom() {
     setLoading(true);
 
     try {
-      const res = await sendMessage(text, currentMode);
+      const res = await sendMessage(text, "reflect");
 
       const aiMessage = {
         sender: "ai",
@@ -41,6 +42,32 @@ export default function ReflectRoom() {
       setMessages(prev => [
         ...prev,
         { sender: "ai", text: "I'm here to support you. Please try again." }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSendImage(base64Image, description) {
+    const userMessage = {
+      sender: "user",
+      text: description || "I'm sharing an image with you",
+      image: base64Image
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const emotionalResponse = await analyzeImageForSupport(base64Image, description);
+      const aiMessage = {
+        sender: "ai",
+        text: emotionalResponse
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (err) {
+      setMessages(prev => [
+        ...prev,
+        { sender: "ai", text: "I'm here for you. I had trouble understanding the image, but I'm still listening. 💙" }
       ]);
     } finally {
       setLoading(false);
@@ -65,58 +92,24 @@ export default function ReflectRoom() {
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{
-                background: currentMode === 'reflect' 
-                  ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                  : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
               }}>
-                {currentMode === 'reflect' ? (
-                  <ReflectIcon className="w-5 h-5 text-white" />
-                ) : (
-                  <CalmIcon className="w-5 h-5 text-white" />
-                )}
+                <ReflectIcon className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
                 <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {currentMode === 'reflect' ? 'Reflect' : 'Calm'}
+                  Reflect
                 </h1>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {currentMode === 'reflect' 
-                    ? 'Process your thoughts and find clarity' 
-                    : 'Find peace and relaxation'}
+                  Process your thoughts and find clarity
                 </p>
               </div>
             </div>
           </div>
-          <ThemeToggle />
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => setCurrentMode("reflect")}
-            className="px-4 py-2 rounded-lg font-medium text-sm transition-all"
-            style={{
-              background: currentMode === "reflect" 
-                ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                : 'var(--bg-secondary)',
-              color: currentMode === 'reflect' ? 'white' : 'var(--text-primary)',
-              border: currentMode === 'reflect' ? 'none' : '1px solid var(--border)'
-            }}
-          >
-            🤔 Reflect
-          </button>
-          <button
-            onClick={() => setCurrentMode("calm")}
-            className="px-4 py-2 rounded-lg font-medium text-sm transition-all"
-            style={{
-              background: currentMode === "calm" 
-                ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                : 'var(--bg-secondary)',
-              color: currentMode === 'calm' ? 'white' : 'var(--text-primary)',
-              border: currentMode === 'calm' ? 'none' : '1px solid var(--border)'
-            }}
-          >
-            🧘 Calm
-          </button>
+          <div className="flex items-center gap-3">
+            <VoiceSelector />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -124,7 +117,12 @@ export default function ReflectRoom() {
         background: 'var(--bg-primary)'
       }}>
         {messages.map((msg, idx) => (
-          <ChatBubble key={idx} sender={msg.sender} text={msg.text} />
+          <ChatBubble 
+            key={idx} 
+            sender={msg.sender} 
+            text={msg.text}
+            image={msg.image}
+          />
         ))}
 
         {loading && (
@@ -142,7 +140,11 @@ export default function ReflectRoom() {
         )}
       </section>
 
-      <ChatInput onSend={handleSend} disabled={loading} />
+      <ChatInput 
+        onSend={handleSend} 
+        onSendImage={handleSendImage}
+        disabled={loading} 
+      />
     </main>
   );
 }

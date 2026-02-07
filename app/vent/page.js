@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import ChatBubble from "@/components/ChatBubble";
 import ChatInput from "@/components/ChatInput";
 import ThemeToggle from "@/components/ThemeToggle";
+import VoiceSelector from "@/components/VoiceSelector";
 import { sendMessage } from "@/lib/apiClient";
+import { analyzeImageForSupport } from "@/backend/services/imageAnalyzer";
 import { VentIcon, MindSpaceLogo } from "@/components/Icons";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -47,6 +49,35 @@ export default function VentRoom() {
     }
   }
 
+  async function handleSendImage(base64Image, description) {
+    const userMessage = {
+      sender: "user",
+      text: description || "I'm sharing an image with you",
+      image: base64Image
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const emotionalResponse = await analyzeImageForSupport(base64Image, description);
+
+      const aiMessage = {
+        sender: "ai",
+        text: emotionalResponse
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (err) {
+      console.error('Error analyzing image:', err);
+      setMessages(prev => [
+        ...prev,
+        { sender: "ai", text: "I'm here for you. I had trouble understanding the image, but I'm still listening. 💙" }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="flex flex-col h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Enhanced Header */}
@@ -76,7 +107,10 @@ export default function VentRoom() {
               </div>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <VoiceSelector />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -85,7 +119,12 @@ export default function VentRoom() {
         background: 'var(--bg-primary)'
       }}>
         {messages.map((msg, idx) => (
-          <ChatBubble key={idx} sender={msg.sender} text={msg.text} />
+          <ChatBubble
+            key={idx}
+            sender={msg.sender}
+            text={msg.text}
+            image={msg.image}
+          />
         ))}
 
         {loading && (
@@ -104,7 +143,11 @@ export default function VentRoom() {
       </section>
 
       {/* Input Area */}
-      <ChatInput onSend={handleSend} disabled={loading} />
+      <ChatInput 
+        onSend={handleSend}
+        onSendImage={handleSendImage}
+        disabled={loading}
+      />
     </main>
   );
 }

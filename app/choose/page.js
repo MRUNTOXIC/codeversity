@@ -82,10 +82,10 @@ export default function Choose() {
                 </div>
               </div>
               <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Reflect & Calm
+                Reflect
               </h3>
               <p style={{ color: 'var(--text-secondary)' }}>
-                Help me process and find peace
+                Help me process my thoughts
               </p>
               <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
                 Explore deeper, find clarity

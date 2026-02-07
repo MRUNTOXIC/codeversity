@@ -13,7 +13,7 @@ export default function LandingPage() {
     <div className="app-container min-h-screen overflow-hidden">
       {/* Animated Background Gradient */}
       <div className="fixed inset-0 -z-10" style={{
-        background: theme === 'dark' 
+        backgroundImage: theme === 'dark'
           ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f8fafb 50%, #eff2f5 100%)',
         animation: 'gradient 15s ease infinite',
