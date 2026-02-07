@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { detectCrisis, getCrisisResponse } from "@/backend/services/crisisDetectionService";
+import { mockAIResponse } from "@/backend/services/mockAiService";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -91,23 +92,48 @@ export async function POST(request) {
 
     console.log('Using prompt:', fullPrompt);
 
+    // If no API key available, immediately fallback to a local mock
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not found');
+      const responseText = mockAIResponse(message, activeMode);
+      return Response.json({
+        reply: responseText,
+        message: responseText,
+        mode: activeMode,
+        status: "mock_fallback",
+      });
     }
 
     // Use the correct model name
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(fullPrompt);
-    
-    const responseText = result.response.text();
-    console.log('AI Response:', responseText);
+    try {
+      const result = await model.generateContent(fullPrompt);
+      const responseText = result.response.text();
+      console.log('AI Response:', responseText);
 
-    return Response.json({
-      reply: responseText,
-      message: responseText,
-      mode: activeMode,
-      status: "success",
-    });
+      return Response.json({
+        reply: responseText,
+        message: responseText,
+        mode: activeMode,
+        status: "success",
+      });
+    } catch (apiErr) {
+      // Detect leaked / revoked API key errors and fallback to local mock
+      const msg = apiErr?.message || '';
+      console.error('Generative API error:', msg);
+
+      if (apiErr?.status === 403 || /leaked|revoked|forbidden/i.test(msg)) {
+        const responseText = mockAIResponse(message, activeMode);
+        return Response.json({
+          reply: responseText,
+          message: responseText,
+          mode: activeMode,
+          status: "mock_fallback",
+        });
+      }
+
+      // Re-throw other errors to be handled by outer catch
+      throw apiErr;
+    }
   } catch (error) {
     console.error("API Error:", error);
     
